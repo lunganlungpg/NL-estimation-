@@ -1,0 +1,28 @@
+Package: nlestim
+Type: Package
+Title: Nonlinear Least Squares with Gauss-Newton and Levenberg-Marquardt
+Version: 1.0.0
+Authors@R: person("lunganlungpg", role = c("aut", "cre"),
+    email = "lunganlungpg@users.noreply.github.com")
+Description: Readable implementations of the Gauss-Newton (with optional step
+    halving) and Levenberg-Marquardt algorithms for nonlinear least squares,
+    with analytic derivatives from formulas, the Bates and Watts relative-offset
+    convergence criterion, and the inference needed to report a fit: standard
+    errors, Wald, profile-likelihood and bootstrap confidence intervals,
+    confidence and prediction bands, AIC/BIC and extra-sum-of-squares F tests.
+    A one-call workflow fits a set of candidate models to any dataset, compares
+    them, and exports tables and plots. Ships NIST certified reference datasets
+    and realistic example datasets.
+License: MIT + file LICENSE
+URL: https://github.com/lunganlungpg/NL-estimation-,
+    https://lunganlungpg.github.io/NL-estimation-/
+BugReports: https://github.com/lunganlungpg/NL-estimation-/issues
+Depends: R (>= 4.1.0)
+Imports: graphics, grDevices, stats, tools, utils
+Suggests: knitr, readxl, rmarkdown, testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1

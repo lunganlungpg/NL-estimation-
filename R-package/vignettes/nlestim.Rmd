@@ -1,0 +1,145 @@
+---
+title: "Analysing any dataset with nlestim"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Analysing any dataset with nlestim}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7, fig.height = 5.5)
+```
+
+`nlestim` fits nonlinear regression models by Gauss-Newton or
+Levenberg-Marquardt and gives you everything needed to report the result. This
+vignette shows the workflow on the bundled data; replace the data frame and
+column names with your own.
+
+```{r}
+library(nlestim)
+```
+
+## 1. The one-call workflow
+
+`nl_workflow()` takes a data frame and the names of the x and y columns. It
+chooses candidate models from the shape of the data, fits them, ranks them by
+AICc and reports the best one with profile-likelihood confidence intervals.
+
+```{r}
+wf <- nl_workflow(plant_growth, x = "day", y = "biomass")
+wf
+```
+
+The figure shows every candidate curve, the best fit with 95% confidence and
+prediction bands, and residual diagnostics:
+
+```{r, fig.height = 6}
+plot(wf)
+```
+
+The Gompertz curve wins. That is correct: these data were simulated from a
+Gompertz curve. The logistic curve looks almost as good by eye, but its residual sum of
+squares is about 50% larger, which AICc reflects.
+
+### Choosing the candidate models yourself
+
+```{r}
+nl_models()[, c("model", "formula")]
+nl_workflow(crop_yield_nitrogen, "nitrogen", "yield",
+            models = c("asymptotic_regression", "michaelis_menten", "logistic"),
+            plot = FALSE)$comparison
+```
+
+### Saving everything for a report
+
+Give an `output_dir` and the workflow writes the comparison table, parameter
+tables, fitted values, a prediction curve with bands, a PNG figure and a
+plain-text report:
+
+```{r}
+out <- file.path(tempdir(), "yield-analysis")
+wf <- nl_workflow(crop_yield_nitrogen, "nitrogen", "yield", output_dir = out, plot = FALSE)
+basename(wf$files)
+```
+
+## 2. Your own data
+
+Read a CSV or Excel file with `nl_read()` (Excel needs the readxl package), then
+run the workflow on the columns you need:
+
+```{r}
+path <- system.file("extdata", "dose_response.csv", package = "nlestim")
+my_data <- nl_read(path)
+names(my_data)
+names(my_data) <- c("conc", "viability")
+nl_workflow(my_data, "conc", "viability", plot = FALSE)$parameters
+```
+
+Every bundled dataset comes with a ready-made call:
+
+```{r}
+nl_datasets()[, c("dataset", "kind", "n", "workflow")]
+```
+
+## 3. Fitting a single model
+
+With a built-in model, starting values are automatic:
+
+```{r}
+fit <- nl_fit(rate ~ conc, puromycin, model = "michaelis_menten")
+summary(fit)
+```
+
+Or write any formula, exactly as with `stats::nls()`. Derivatives are taken
+analytically with `deriv()`:
+
+```{r}
+fit2 <- nl_fit(rate ~ Vmax * conc / (Km + conc), puromycin,
+               start = c(Vmax = 200, Km = 0.1), method = "gn")
+coef(fit2)
+```
+
+## 4. Inference
+
+Wald intervals assume the model is close to linear in each parameter.
+Profile-likelihood intervals follow the real shape of the sum of squares, and
+bootstrap intervals make no such assumption:
+
+```{r}
+confint(fit)                       # Wald
+confint(fit, method = "profile")   # profile likelihood (as R's confint for nls)
+confint(fit, method = "bootstrap", R = 500)
+```
+
+The profile t plot shows why the Km interval is asymmetric:
+
+```{r, fig.height = 4}
+pr <- nl_profile(fit, "Km")
+plot(pr$value, pr$tau, type = "l", lwd = 2, xlab = "Km", ylab = "profile t",
+     main = "Curved profile: Wald intervals are only approximate")
+abline(h = c(-1, 1) * qt(0.975, df.residual(fit)), lty = 3)
+abline(a = -coef(fit)["Km"] / sqrt(vcov(fit)["Km", "Km"]),
+       b = 1 / sqrt(vcov(fit)["Km", "Km"]), col = "grey50", lty = 2)
+```
+
+## 5. Prediction, comparison and weights
+
+```{r}
+predict(fit, data.frame(conc = c(0.05, 0.5)), interval = "prediction")
+
+full <- nl_fit(yield ~ nitrogen, crop_yield_nitrogen, model = "asymptotic_regression")
+reduced <- nl_fit(yield ~ a * (1 - exp(-c * nitrogen)), crop_yield_nitrogen,
+                  start = c(a = 10, c = 0.01))
+anova(reduced, full)   # is the yield without nitrogen really above zero?
+```
+
+When the noise grows with the response (constant coefficient of variation),
+weight each point by `1 / fitted^2`:
+
+```{r}
+f0 <- nl_fit(conc ~ time, drug_elimination, model = "exponential_decay")
+fw <- nl_fit(conc ~ time, drug_elimination, model = "exponential_decay",
+             weights = 1 / fitted(f0)^2)
+rbind(unweighted = coef(f0), weighted = coef(fw))
+```

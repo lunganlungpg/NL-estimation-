@@ -19,7 +19,7 @@
 ## Contents
 
 - [What's inside](#whats-inside)
-- [Quick start](#quick-start)
+- [Quick start](#quick-start) (Python and R)
 - [Gauss–Newton or Levenberg–Marquardt?](#gaussnewton-or-levenbergmarquardt)
 - [Accuracy on NIST certified problems](#accuracy-on-nist-certified-problems)
 - [Statistical inference](#statistical-inference)
@@ -35,6 +35,7 @@
 | | |
 |---|---|
 | 🧪 **[Interactive solver lab](https://lunganlungpg.github.io/NL-estimation-/)** | Click a starting point on a real SSE landscape and step through **Gauss–Newton** and **Levenberg–Marquardt** side by side. Watch steps get rejected, λ adapt, and the "λ-path" bend from the Gauss–Newton step to steepest descent. Includes a **fit-your-own-data** tool that runs entirely in the browser. |
+| 📦 **`nlestim` R package** | The same algorithms for R, with `summary`, `confint` (Wald, profile, bootstrap), `predict`, `anova`, `AIC` methods and **`nl_workflow()`: one call that fits, compares and reports candidate models on any dataset** and exports tables, figures and a report. [R-package/](R-package) |
 | 🐍 **`nlsfit` Python package** | Readable implementations of both algorithms (step halving, Marquardt scaling, gain-ratio damping, Bates–Watts convergence test) plus everything you need to report a fit: SE, t and p values, **Wald, profile-likelihood and bootstrap intervals**, confidence and prediction bands, AIC/BIC, nested F-tests, weights, diagnostics plots. |
 | 📊 **Sample datasets** | 11 datasets as CSV and one formatted **Excel workbook**: 6 NIST certified benchmarks, the classic Puromycin data, and 4 realistic simulated datasets (crop yield, plant growth, dose–response, drug elimination) with known true parameters. |
 | 📈 **Plots** | Fitted curves with bands, residual diagnostics, convergence curves, SSE landscapes with solver paths, profile-t plots. |
@@ -43,6 +44,7 @@
 
 ```
 NL-estimation-/
+├── R-package/         # the nlestim R package (workflows, vignettes, tests)
 ├── nlsfit/            # the Python package
 │   ├── solvers.py     #   gauss_newton, levenberg_marquardt, numerical_jacobian, relative_offset
 │   ├── fit.py         #   fit(), FitResult (inference, bands, summary), compare(), extra_ss_test()
@@ -108,6 +110,16 @@ res = nlsfit.fit(decay, t, conc, p0=[10, 0.3], method="gn")  # "lm" (default), "
 res.conf_int(method="profile")  # or "wald", "bootstrap"
 yhat, lo, hi = res.predict(t_new, interval="prediction")
 res.to_frame()  # pandas table for reports
+```
+
+**In R** (see [`R-package/`](R-package)):
+
+```r
+remotes::install_github("lunganlungpg/NL-estimation-", subdir = "R-package", build_vignettes = TRUE)
+library(nlestim)
+wf <- nl_workflow(plant_growth, x = "day", y = "biomass", output_dir = "results")  # any data frame
+fit <- nl_fit(rate ~ conc, puromycin, model = "michaelis_menten")
+summary(fit); confint(fit, method = "profile"); plot(fit)
 ```
 
 **From Excel:**

@@ -54,7 +54,11 @@ def main():
             "What is this?",
             "Datasets for practising nonlinear least squares (Gauss–Newton, Levenberg–Marquardt).",
         ],
-        ["Sheets", "'Index' lists every dataset. Each dataset has its own sheet with x and y columns."],
+        [
+            "Sheets",
+            "'Index' lists every dataset with its model, source and true/certified values. "
+            "Each dataset sheet holds only its two data columns, so it reads cleanly into R or Python.",
+        ],
         ["", "'NIST certified' gives the official answers and starting values for the NIST problems."],
         ["", "'Your data' is a blank template: paste x and y, then fit with nlsfit or the website."],
         ["Kinds", "nist = NIST StRD reference problem with certified answers (public domain)."],
@@ -148,17 +152,6 @@ def main():
         _style_header(ws)
         ws.column_dimensions["A"].width = max(14, len(d.x_label) + 2)
         ws.column_dimensions["B"].width = max(14, len(d.y_label) + 2)
-        ws["D1"] = "Model"
-        ws["E1"] = d.model.formula
-        ws["D2"] = "Kind"
-        ws["E2"] = d.kind
-        ws["D3"] = "About"
-        ws["E3"] = d.description
-        ws["D4"] = "Certified" if d.certified is not None else "True params" if d.true_params else ""
-        ws["E4"] = _fmt(d.certified if d.certified is not None else d.true_params)
-        for r in range(1, 5):
-            ws.cell(r, 4).font = Font(bold=True)
-        ws.column_dimensions["E"].width = 90
         ws.freeze_panes = "A2"
 
         header = f"{d.x_label},{d.y_label}"

@@ -1,0 +1,106 @@
+---
+title: "Gauss-Newton versus Levenberg-Marquardt"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Gauss-Newton versus Levenberg-Marquardt}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 7.5, fig.height = 4)
+```
+
+```{r}
+library(nlestim)
+```
+
+Both algorithms minimise the residual sum of squares
+$S(\theta) = \sum_i r_i(\theta)^2$ by replacing the model with its tangent
+approximation $f(x, \theta + \delta) \approx f(x, \theta) + J\delta$ and
+solving a linear least-squares problem for the step.
+
+* **Gauss-Newton**: $(J^\top J)\,\delta = -J^\top r$. Very fast near the
+  answer; can overshoot from a poor start. *Step halving* (the default in
+  `stats::nls()` and `method = "gn"`) shortens a step until the fit improves.
+* **Levenberg-Marquardt**: $(J^\top J + \lambda D)\,\delta = -J^\top r$. The
+  damping $\lambda$ grows after a bad step (shorter, gradient-like steps) and
+  shrinks after a good one (Gauss-Newton-like steps).
+
+## A problem where textbook Gauss-Newton fails
+
+NIST's BoxBOD problem from its first official starting point:
+
+```{r}
+cmp <- nl_compare_solvers(bod ~ days, boxbod, model = "exponential_rise",
+                          start = c(a = 1, k = 1), plot = FALSE)
+cmp$table[, c("method", "converged", "iterations", "SSE", "message")]
+```
+
+Pure Gauss-Newton's very first step sends the rate constant negative and the
+model overflows. Step halving rescues it. Levenberg-Marquardt stalls on a
+plateau where the model barely depends on `k`; SciPy's and MINPACK's
+implementations stall here too. No single method always wins.
+
+From a moderate start both converge, and the landscape shows how differently
+they travel:
+
+```{r}
+nl_compare_solvers(rate ~ conc, puromycin, model = "michaelis_menten",
+                   start = c(Vmax = 240, Km = 0.25), xlim = c(130, 260), ylim = c(0, 0.3),
+                   plot = TRUE)
+```
+
+## Accuracy on NIST certified problems
+
+`nist_certified` holds the certified answers and both official starting points
+for six NIST problems. The number of correct significant digits (the log
+relative error, LRE) measures accuracy; NIST treats 6 or more as a successful
+solve.
+
+```{r}
+lre <- function(est, cert) min(pmin(11, -log10(abs(est - cert) / abs(cert))))
+rows <- list()
+for (ds in unique(nist_certified$dataset)) {
+  cc <- nist_certified[nist_certified$dataset == ds, ]
+  for (s in c("start1", "start2")) {
+    st <- setNames(cc[[s]], cc$parameter)
+    digits <- vapply(c("gn-pure", "gn", "lm"), function(m) {
+      f <- tryCatch(suppressWarnings(nl_fit(as.formula(cc$formula[1]), get(ds), start = st,
+                                             method = m)), error = function(e) NULL)
+      if (is.null(f) || !f$converged) 0 else max(0, lre(coef(f), cc$certified))
+    }, 0)
+    rows[[length(rows) + 1]] <- data.frame(problem = ds, start = s, t(round(digits, 1)),
+                                           check.names = FALSE)
+  }
+}
+bench <- do.call(rbind, rows)
+bench
+colSums(bench[, c("gn-pure", "gn", "lm")] >= 6)
+```
+
+Levenberg-Marquardt solves 11 of the 12 runs, Gauss-Newton with step halving
+10, and textbook Gauss-Newton 7.
+
+## Under the hood
+
+The iteration history is stored with every fit:
+
+```{r}
+fit <- nl_fit(rate ~ conc, puromycin, model = "michaelis_menten")
+head(fit$history)
+```
+
+and the low-level solvers can be used directly on any residual function:
+
+```{r}
+x <- boxbod$days
+y <- boxbod$bod
+res <- function(p) p[1] * (1 - exp(-p[2] * x)) - y
+jac <- function(p) cbind(1 - exp(-p[2] * x), p[1] * x * exp(-p[2] * x))
+nl_gauss_newton(res, jac, c(a = 1, k = 1), step_halving = TRUE)$par
+```
+
+Convergence is judged by the Bates-Watts *relative offset*
+(`relative_offset()`), which is zero at an exact least-squares solution and,
+unlike step-size tests, does not depend on how the parameters are scaled.
