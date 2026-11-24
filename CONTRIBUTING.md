@@ -5,8 +5,8 @@ Thank you for helping make nonlinear estimation easier to learn and use. Clearer
 ## Set up
 
 ```bash
-git clone https://github.com/lunganlungpg/nonlinear-estimation.git
-cd nonlinear-estimation
+git clone https://github.com/lunganlungpg/NL-estimation-.git
+cd NL-estimation-
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[all]"
 ```

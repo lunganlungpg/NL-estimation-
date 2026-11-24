@@ -129,7 +129,7 @@ footer .wrap{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
       <a class="opt" href="#compare">GN vs LM</a>
       <a href="#fit">Fit your data</a>
       <a class="opt" href="#data">Datasets</a>
-      <a href="https://github.com/lunganlungpg/nonlinear-estimation">GitHub</a>
+      <a href="https://github.com/lunganlungpg/NL-estimation-">GitHub</a>
     </div>
     <button id="theme" aria-label="Toggle theme" title="Toggle light/dark theme"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.5a6.5 6.5 0 0 1 0 13z" fill="currentColor"/></svg></button>
   </div>
@@ -143,7 +143,7 @@ footer .wrap{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
     <div class="cta">
       <a class="btn primary" href="#lab">Open the solver lab →</a>
       <a class="btn" href="#fit">Fit your own data</a>
-      <a class="btn" href="https://github.com/lunganlungpg/nonlinear-estimation#quick-start">Python package</a>
+      <a class="btn" href="https://github.com/lunganlungpg/NL-estimation-#quick-start">Python package</a>
     </div>
   </div>
 </header>
@@ -284,7 +284,7 @@ footer .wrap{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
   <div class="wrap">
     <h2><span class="n">05</span>Datasets</h2>
     <p class="sub">Every dataset ships as CSV and in one Excel workbook (an index sheet, NIST certified values and a blank template for your own data). NIST problems have certified answers, so you can check any software against them.</p>
-    <div class="cta" style="margin:0 0 18px"><a class="btn primary" href="data/nonlinear_datasets.xlsx">Download the Excel workbook</a><a class="btn" href="https://github.com/lunganlungpg/nonlinear-estimation/tree/main/data">Browse CSV files</a></div>
+    <div class="cta" style="margin:0 0 18px"><a class="btn primary" href="data/nonlinear_datasets.xlsx">Download the Excel workbook</a><a class="btn" href="https://github.com/lunganlungpg/NL-estimation-/tree/main/data">Browse CSV files</a></div>
     <div class="scroll"><table class="tbl" id="dstab"><thead><tr><th>Dataset</th><th>Kind</th><th>n</th><th>Model</th><th>About</th></tr></thead><tbody></tbody></table></div>
   </div>
 </section>
@@ -293,7 +293,7 @@ footer .wrap{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
   <div class="wrap">
     <h2><span class="n">06</span>Use it in Python</h2>
     <p class="sub">The <code>nlsfit</code> package contains the same algorithms, implemented readably, plus everything you need to report a fit.</p>
-<pre class="code"><span class="c"># pip install "git+https://github.com/lunganlungpg/nonlinear-estimation.git"</span>
+<pre class="code"><span class="c"># pip install "git+https://github.com/lunganlungpg/NL-estimation-.git"</span>
 <span class="k">import</span> nlsfit
 
 data = nlsfit.datasets.<span class="f">load</span>(<span class="s">"puromycin"</span>)
@@ -307,7 +307,7 @@ res.<span class="f">predict</span>(x_new, interval=<span class="s">"prediction"<
 
 <footer>
   <div class="wrap">
-    <span>Nonlinear Least Squares Lab · MIT licensed · <a href="https://github.com/lunganlungpg/nonlinear-estimation">source on GitHub</a></span>
+    <span>Nonlinear Least Squares Lab · MIT licensed · <a href="https://github.com/lunganlungpg/NL-estimation-">source on GitHub</a></span>
     <span>NIST data: <a href="https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml">Statistical Reference Datasets</a></span>
   </div>
 </footer>
@@ -799,7 +799,7 @@ const DS_ROWS = [
   ["dose_response", "simulated", 18, "4-parameter logistic", "Cell viability vs drug concentration"],
   ["drug_elimination", "simulated", 10, "a·exp(−k·x)", "Plasma concentration; weighted fitting"],
 ];
-$("#dstab tbody").innerHTML = DS_ROWS.map((r) => `<tr><td><a href="https://github.com/lunganlungpg/nonlinear-estimation/blob/main/data/${r[0]}.csv"><code>${r[0]}</code></a></td><td>${r[1]}</td><td>${r[2]}</td><td><code>${r[3]}</code></td><td>${r[4]}</td></tr>`).join("");
+$("#dstab tbody").innerHTML = DS_ROWS.map((r) => `<tr><td><a href="https://github.com/lunganlungpg/NL-estimation-/blob/main/data/${r[0]}.csv"><code>${r[0]}</code></a></td><td>${r[1]}</td><td>${r[2]}</td><td><code>${r[3]}</code></td><td>${r[4]}</td></tr>`).join("");
 
 /* ---------------- KaTeX ---------------- */
 function renderMath() {

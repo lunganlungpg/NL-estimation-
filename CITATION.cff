@@ -6,8 +6,8 @@ authors:
 version: 1.0.0
 date-released: 2026-11-24
 license: MIT
-repository-code: "https://github.com/lunganlungpg/nonlinear-estimation"
-url: "https://lunganlungpg.github.io/nonlinear-estimation/"
+repository-code: "https://github.com/lunganlungpg/NL-estimation-"
+url: "https://lunganlungpg.github.io/NL-estimation-/"
 keywords:
   - nonlinear regression
   - least squares

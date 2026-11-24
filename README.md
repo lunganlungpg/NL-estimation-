@@ -4,13 +4,13 @@
 
 **Learn, see and use nonlinear least squares.** An interactive solver lab, a tested Python package with full statistical inference, benchmark and sample datasets, and a complete theory guide.
 
-[![CI](https://github.com/lunganlungpg/nonlinear-estimation/actions/workflows/ci.yml/badge.svg)](https://github.com/lunganlungpg/nonlinear-estimation/actions/workflows/ci.yml)
-[![Website](https://img.shields.io/badge/interactive%20lab-live-0e7490)](https://lunganlungpg.github.io/nonlinear-estimation/)
+[![CI](https://github.com/lunganlungpg/NL-estimation-/actions/workflows/ci.yml/badge.svg)](https://github.com/lunganlungpg/NL-estimation-/actions/workflows/ci.yml)
+[![Website](https://img.shields.io/badge/interactive%20lab-live-0e7490)](https://lunganlungpg.github.io/NL-estimation-/)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](pyproject.toml)
 [![NIST verified](https://img.shields.io/badge/NIST%20StRD-verified-2b8a3e)](#accuracy-on-nist-certified-problems)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-### [▶ Open the interactive solver lab](https://lunganlungpg.github.io/nonlinear-estimation/)
+### [▶ Open the interactive solver lab](https://lunganlungpg.github.io/NL-estimation-/)
 
 <img src="docs/images/gn_vs_lm_puromycin.png" alt="Gauss–Newton and Levenberg–Marquardt paths on an SSE landscape" width="820">
 
@@ -34,7 +34,7 @@
 
 | | |
 |---|---|
-| 🧪 **[Interactive solver lab](https://lunganlungpg.github.io/nonlinear-estimation/)** | Click a starting point on a real SSE landscape and step through **Gauss–Newton** and **Levenberg–Marquardt** side by side. Watch steps get rejected, λ adapt, and the "λ-path" bend from the Gauss–Newton step to steepest descent. Includes a **fit-your-own-data** tool that runs entirely in the browser. |
+| 🧪 **[Interactive solver lab](https://lunganlungpg.github.io/NL-estimation-/)** | Click a starting point on a real SSE landscape and step through **Gauss–Newton** and **Levenberg–Marquardt** side by side. Watch steps get rejected, λ adapt, and the "λ-path" bend from the Gauss–Newton step to steepest descent. Includes a **fit-your-own-data** tool that runs entirely in the browser. |
 | 🐍 **`nlsfit` Python package** | Readable implementations of both algorithms (step halving, Marquardt scaling, gain-ratio damping, Bates–Watts convergence test) plus everything you need to report a fit: SE, t and p values, **Wald, profile-likelihood and bootstrap intervals**, confidence and prediction bands, AIC/BIC, nested F-tests, weights, diagnostics plots. |
 | 📊 **Sample datasets** | 11 datasets as CSV and one formatted **Excel workbook**: 6 NIST certified benchmarks, the classic Puromycin data, and 4 realistic simulated datasets (crop yield, plant growth, dose–response, drug elimination) with known true parameters. |
 | 📈 **Plots** | Fitted curves with bands, residual diagnostics, convergence curves, SSE landscapes with solver paths, profile-t plots. |
@@ -42,7 +42,7 @@
 | 📚 **[Theory guide](docs/theory.md)** | Derivations, failure modes, damping control, convergence criteria, inference and practical advice, with references. |
 
 ```
-nonlinear-estimation/
+NL-estimation-/
 ├── nlsfit/            # the Python package
 │   ├── solvers.py     #   gauss_newton, levenberg_marquardt, numerical_jacobian, relative_offset
 │   ├── fit.py         #   fit(), FitResult (inference, bands, summary), compare(), extra_ss_test()
@@ -60,14 +60,14 @@ nonlinear-estimation/
 ## Quick start
 
 ```bash
-git clone https://github.com/lunganlungpg/nonlinear-estimation.git
-cd nonlinear-estimation
+git clone https://github.com/lunganlungpg/NL-estimation-.git
+cd NL-estimation-
 python -m venv .venv && source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -e ".[all]"
 python examples/01_quickstart.py
 ```
 
-Or install directly: `pip install "git+https://github.com/lunganlungpg/nonlinear-estimation.git"`.
+Or install directly: `pip install "git+https://github.com/lunganlungpg/NL-estimation-.git"`.
 
 **Fit a model in one line** (this block runs as a test, so it is guaranteed to work):
 
