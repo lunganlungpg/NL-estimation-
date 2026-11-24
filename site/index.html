@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nonlinear Least Squares Lab</title>
+<meta name="description" content="See Gauss–Newton and Levenberg–Marquardt solve nonlinear least-squares problems step by step, on real NIST benchmark data, and fit your own data in the browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M3 27 C 10 27, 12 6, 29 5' stroke='%230e7490' stroke-width='3.5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='24' r='2.6' fill='%23d9480f'/%3E%3Ccircle cx='16' cy='13' r='2.6' fill='%23d9480f'/%3E%3Ccircle cx='24' cy='7' r='2.6' fill='%23d9480f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<style>
+:root{
+  --bg:#f7f8fb; --surface:#fff; --surface-2:#f0f3f8; --border:#dde3ec;
+  --text:#121826; --muted:#5b6578; --accent:#0e7490; --accent-soft:#cff4fc;
+  --gn:#d9480f; --lm:#1c64d1; --path:#7c3aed; --good:#2b8a3e; --warn:#b35c00; --bad:#c92a2a;
+  --code-bg:#0f172a; --code-text:#e2e8f0;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 4px 16px rgba(16,24,40,.06);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b0f17; --surface:#121826; --surface-2:#18202f; --border:#263045; --text:#e6e9f0; --muted:#97a1b5;
+  --accent:#22d3ee; --accent-soft:#083344; --gn:#ff8a4c; --lm:#5c9dff; --path:#b794f6; --good:#51cf66; --warn:#ffa94d; --bad:#ff6b6b;
+  --code-bg:#070a10; --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 24px rgba(0,0,0,.35);}}
+:root[data-theme="dark"]{
+  --bg:#0b0f17; --surface:#121826; --surface-2:#18202f; --border:#263045; --text:#e6e9f0; --muted:#97a1b5;
+  --accent:#22d3ee; --accent-soft:#083344; --gn:#ff8a4c; --lm:#5c9dff; --path:#b794f6; --good:#51cf66; --warn:#ffa94d; --bad:#ff6b6b;
+  --code-bg:#070a10; --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 24px rgba(0,0,0,.35);}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:70px}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.9em}
+:not(pre)>code{background:var(--surface-2);border:1px solid var(--border);padding:.05em .35em;border-radius:5px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+@media (max-width:480px){.wrap{padding:0 16px}}
+nav.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+nav.top .wrap{display:flex;align-items:center;gap:18px;height:56px}
+.brand{font-weight:700;color:var(--text);text-decoration:none;white-space:nowrap}
+.brand span{color:var(--accent)}
+nav.top .links{display:flex;gap:16px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+nav.top .links a{color:var(--muted);text-decoration:none;font-size:.92rem;white-space:nowrap}
+nav.top .links a:hover{color:var(--text)}
+#theme{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:none;color:var(--text);cursor:pointer;flex:none}
+@media (max-width:760px){nav.top .links a.opt{display:none}}
+header.hero{padding:56px 0 30px}
+.eyebrow{color:var(--accent);font-weight:600;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.1;margin:.3em 0 .4em;letter-spacing:-.02em}
+.lede{font-size:1.12rem;color:var(--muted);max-width:760px;margin:0}
+.cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);text-decoration:none;font:600 .93rem Inter,sans-serif;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .btn.primary{color:#04131a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.primary{color:#04131a}}
+.btn:disabled{opacity:.5;cursor:default}
+section{padding:42px 0;border-top:1px solid var(--border)}
+h2{font-size:clamp(1.4rem,3vw,1.9rem);margin:0 0 .3em;letter-spacing:-.01em}
+h2 .n{color:var(--accent);font-family:"JetBrains Mono",monospace;font-size:.8em;margin-right:.4em}
+h3{font-size:1.08rem;margin:0 0 .4em}
+.sub{color:var(--muted);margin:0 0 22px;max-width:800px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.card p{margin:.2em 0 0;color:var(--muted);font-size:.95rem}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+/* lab */
+.lab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:900px){.lab{grid-template-columns:1fr}}
+.stage{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;box-shadow:var(--shadow);position:relative}
+.stage canvas{display:block;width:100%;border-radius:8px;touch-action:none}
+.stage .cap{display:flex;justify-content:space-between;gap:8px;font-size:.82rem;color:var(--muted);padding:2px 4px 8px;flex-wrap:wrap}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:16px 0}
+.field{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:600}
+.field small{font-weight:400;color:var(--muted)}
+select{max-width:100%;min-width:0}
+.fitgrid>*,.lab>*{min-width:0}
+.field{min-width:0;max-width:100%}
+select,input[type=number],textarea{font:inherit;font-size:.92rem;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:7px 9px}
+input[type=range]{accent-color:var(--accent);width:170px}
+.chk{display:flex;align-items:center;gap:6px;font-size:.88rem;font-weight:500;cursor:pointer}
+.status{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px}
+.method{border-left:4px solid;padding:10px 14px;background:var(--surface);border-radius:10px;box-shadow:var(--shadow);font-size:.9rem}
+.method.gn{border-color:var(--gn)} .method.lm{border-color:var(--lm)}
+.method b.t{font-size:1rem}
+.method .kv{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-family:"JetBrains Mono",monospace;font-size:.82rem;margin-top:6px}
+.badge{display:inline-block;padding:1px 9px;border-radius:20px;font-size:.75rem;font-weight:700;margin-left:6px;background:var(--surface-2);color:var(--muted)}
+.badge.ok{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.badge.bad{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
+.badge.run{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
+.log{max-height:230px;overflow:auto;margin-top:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+table.t{width:100%;border-collapse:collapse;font-size:.82rem}
+table.t th,table.t td{padding:5px 9px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+table.t th{position:sticky;top:0;background:var(--surface-2);color:var(--muted);font-weight:600;text-align:right}
+table.t td:first-child,table.t th:first-child{text-align:left}
+table.t td.mono{font-family:"JetBrains Mono",monospace}
+tr.rej td{color:var(--muted);text-decoration:line-through}
+.note{background:var(--accent-soft);border-radius:10px;padding:12px 14px;font-size:.93rem}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.82rem;color:var(--muted)}
+.sw{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+/* math + tables */
+.math{overflow-x:auto;padding:6px 0}
+.tbl{width:100%;border-collapse:collapse;background:var(--surface);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);font-size:.93rem}
+.tbl th,.tbl td{padding:10px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+.tbl th{background:var(--surface-2);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.tbl tr:last-child td{border-bottom:none}
+.scroll{overflow-x:auto;border-radius:12px}
+pre.code{position:relative;background:var(--code-bg);color:var(--code-text);border-radius:12px;padding:16px;overflow-x:auto;font:13px/1.6 "JetBrains Mono",monospace;margin:0}
+.code .k{color:#f472b6}.code .s{color:#86efac}.code .c{color:#64748b}.code .f{color:#67e8f9}.code .n{color:#fbbf24}
+/* fit-your-data */
+.fitgrid{display:grid;grid-template-columns:minmax(260px,.8fr) minmax(0,1.2fr);gap:16px;align-items:start}
+@media (max-width:900px){.fitgrid{grid-template-columns:1fr}}
+textarea{width:100%;min-height:210px;font-family:"JetBrains Mono",monospace;font-size:.82rem;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:4px 10px;border-radius:16px;border:1px solid var(--border);background:var(--surface);color:var(--text);font:500 .8rem Inter,sans-serif;cursor:pointer}
+.chips button:hover{border-color:var(--accent)}
+.msg{font-size:.88rem;margin-top:8px}
+.msg.err{color:var(--bad)} .msg.ok{color:var(--good)}
+footer{padding:36px 0 56px;color:var(--muted);font-size:.9rem;border-top:1px solid var(--border)}
+footer .wrap{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
+</style>
+</head>
+<body>
+<nav class="top" aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="#">Nonlinear <span>Least Squares</span> Lab</a>
+    <div class="links">
+      <a href="#lab">Solver lab</a>
+      <a class="opt" href="#how">How it works</a>
+      <a class="opt" href="#compare">GN vs LM</a>
+      <a href="#fit">Fit your data</a>
+      <a class="opt" href="#data">Datasets</a>
+      <a href="https://github.com/lunganlungpg/nonlinear-estimation">GitHub</a>
+    </div>
+    <button id="theme" aria-label="Toggle theme" title="Toggle light/dark theme"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.5a6.5 6.5 0 0 1 0 13z" fill="currentColor"/></svg></button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Interactive guide · Gauss–Newton · Levenberg–Marquardt</div>
+    <h1>Watch nonlinear least squares find the answer</h1>
+    <p class="lede">Fitting a curve like <em>y = V·x / (K + x)</em> means searching for the parameters that minimise the sum of squared errors. Nobody can solve that in one step, so solvers walk downhill. Pick a starting point on the error landscape below and watch the two classic algorithms, <b style="color:var(--gn)">Gauss–Newton</b> and <b style="color:var(--lm)">Levenberg–Marquardt</b>, race to the minimum. One of them sometimes falls off a cliff.</p>
+    <div class="cta">
+      <a class="btn primary" href="#lab">Open the solver lab →</a>
+      <a class="btn" href="#fit">Fit your own data</a>
+      <a class="btn" href="https://github.com/lunganlungpg/nonlinear-estimation#quick-start">Python package</a>
+    </div>
+  </div>
+</header>
+
+<main>
+<section id="lab">
+  <div class="wrap">
+    <h2><span class="n">01</span>Solver lab</h2>
+    <p class="sub"><b>Click anywhere on the landscape</b> to choose a starting point, then press <b>Step</b> or <b>Run</b>. Dark valleys mean small error; the star marks the best fit. The right panel shows each method's current curve against the data.</p>
+
+    <div class="toolbar">
+      <label class="field">Dataset
+        <select id="ds"></select>
+      </label>
+      <label class="field">Gauss–Newton variant
+        <select id="gnvar"><option value="pure">Pure (textbook)</option><option value="halving">With step halving</option></select>
+      </label>
+      <label class="field">LM damping update
+        <select id="lmupd"><option value="nielsen">Nielsen (gain ratio)</option><option value="classic">Classic ×10 / ÷10</option></select>
+      </label>
+      <label class="field">LM initial damping τ <small id="tauout">λ₀ = 10⁻³ · max diag(JᵀJ)</small>
+        <input id="tau" type="range" min="-6" max="3" step="0.5" value="-3">
+      </label>
+    </div>
+    <div class="toolbar" style="margin-top:0">
+      <button class="btn primary" id="step">Step</button>
+      <button class="btn" id="run">Run ▶</button>
+      <button class="btn" id="reset">Reset</button>
+      <span id="presets" class="chips"></span>
+      <label class="chk"><input type="checkbox" id="showgn" checked>Gauss–Newton</label>
+      <label class="chk"><input type="checkbox" id="showlm" checked>Levenberg–Marquardt</label>
+      <label class="chk"><input type="checkbox" id="showpath" checked>LM λ-path</label>
+    </div>
+
+    <div class="lab">
+      <div class="stage">
+        <div class="cap"><span>SSE landscape (log scale) · click to set the start</span><span id="hover" class="mono"></span></div>
+        <canvas id="land" height="400" aria-label="Error landscape. Click to choose a starting point."></canvas>
+      </div>
+      <div class="stage">
+        <div class="cap"><span id="dsinfo"></span></div>
+        <canvas id="curve" height="400" aria-label="Data and current fitted curves"></canvas>
+      </div>
+    </div>
+    <div class="legend" style="margin-top:10px">
+      <span><span class="sw" style="background:var(--gn)"></span>Gauss–Newton path</span>
+      <span><span class="sw" style="background:var(--lm)"></span>Levenberg–Marquardt path</span>
+      <span><span class="sw" style="background:var(--path)"></span>LM λ-path: every step LM could take, from λ→0 (= GN step) to λ→∞ (tiny gradient step)</span>
+      <span>☆ certified best fit</span>
+    </div>
+
+    <div class="status">
+      <div class="method gn" id="st-gn"></div>
+      <div class="method lm" id="st-lm"></div>
+    </div>
+    <div class="note" id="explain" style="margin-top:12px"></div>
+    <div class="log"><table class="t" id="logt"><thead><tr><th>method</th><th>iter</th><th id="h1">θ₁</th><th id="h2">θ₂</th><th>SSE</th><th>λ</th><th>note</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2><span class="n">02</span>How it works</h2>
+    <p class="sub">Both methods solve <span class="tex">\min_\theta S(\theta)=\sum_i r_i(\theta)^2,\; r_i=f(x_i,\theta)-y_i</span> by replacing the curve with a straight-line (tangent) approximation around the current guess, solving that easy linear problem, and repeating.</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="color:var(--gn)">Gauss–Newton</h3>
+        <p>Linearise with the Jacobian <span class="tex">J_{ij}=\partial f(x_i,\theta)/\partial\theta_j</span>:</p>
+        <div class="math tex-block">f(x,\theta+\delta)\approx f(x,\theta)+J\delta</div>
+        <p>Minimising the linearised SSE gives the normal equations:</p>
+        <div class="math tex-block">(J^\top J)\,\delta = -J^\top r</div>
+        <p>Near the solution this converges very fast (almost quadratically when residuals are small). Far away, the tangent approximation is poor, the step can overshoot, and the method can diverge. <b>Step halving</b> (Hartley, 1961) shortens a step until the SSE decreases.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--lm)">Levenberg–Marquardt</h3>
+        <p>Add a damping term <span class="tex">\lambda D</span> with <span class="tex">D=\operatorname{diag}(J^\top J)</span>:</p>
+        <div class="math tex-block">(J^\top J+\lambda D)\,\delta = -J^\top r</div>
+        <p>Small λ gives the Gauss–Newton step. Large λ gives a short step along the steepest-descent direction <span class="tex">-J^\top r</span>. After each trial step, the <b>gain ratio</b></p>
+        <div class="math tex-block">\rho=\frac{S(\theta)-S(\theta+\delta)}{S(\theta)-\|r+J\delta\|^2}</div>
+        <p>compares the actual with the predicted improvement. If ρ is good, accept the step and lower λ; if not, reject it and raise λ. That is a trust region in disguise.</p>
+      </div>
+    </div>
+    <div class="grid g3" style="margin-top:16px">
+      <div class="card"><h3>When do we stop?</h3><p>This site and the <code>nlsfit</code> package use the <b>relative offset</b> of Bates &amp; Watts (1981), as R's <code>nls</code> does: the share of the residual vector that lies in the model's tangent plane. It is 0 at an exact minimum and does not depend on parameter scale, unlike "step is small" tests that can stop too early.</p></div>
+      <div class="card"><h3>Uncertainty</h3><p>At the solution, <span class="tex">\widehat{\operatorname{Cov}}(\hat\theta)=s^2(J^\top J)^{-1}</span>, <span class="tex">s^2=S(\hat\theta)/(n-p)</span>. Wald intervals use ±t·SE. Profile-likelihood intervals follow the true curvature and can be asymmetric. The package offers both, plus bootstrap.</p></div>
+      <div class="card"><h3>Starting values matter</h3><p>Both methods find a <em>local</em> minimum near the start. Use sensible starts (from a linearising transform, a plot or domain knowledge), and try several. On NIST MGH09, pure Gauss–Newton converges to a different local minimum.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="compare">
+  <div class="wrap">
+    <h2><span class="n">03</span>Gauss–Newton or Levenberg–Marquardt?</h2>
+    <p class="sub">Measured on six NIST certified problems from both official starting points (12 runs) with the <code>nlsfit</code> package. A run is solved when ≥ 6 significant digits agree with NIST.</p>
+    <div class="scroll"><table class="tbl">
+      <thead><tr><th></th><th>Pure Gauss–Newton</th><th>Gauss–Newton + step halving</th><th>Levenberg–Marquardt</th></tr></thead>
+      <tbody>
+        <tr><td><b>NIST runs solved</b></td><td>7 / 12</td><td>10 / 12</td><td><b>11 / 12</b> (same as SciPy's MINPACK)</td></tr>
+        <tr><td>Speed near the solution</td><td>Fastest</td><td>Fastest</td><td>Slightly slower (damping must shrink first)</td></tr>
+        <tr><td>Robustness to poor starts</td><td>Poor: can overshoot and diverge</td><td>Good</td><td>Best overall, but can stall on flat plateaus (BoxBOD start 1)</td></tr>
+        <tr><td>Singular or near-singular JᵀJ</td><td>Fails</td><td>Fails</td><td>Still works (λD keeps the system solvable)</td></tr>
+        <tr><td>Used by</td><td>Teaching</td><td>R <code>nls()</code> (default algorithm)</td><td>MINPACK, SciPy <code>curve_fit</code>, MATLAB <code>lsqcurvefit</code>, Origin, GraphPad Prism</td></tr>
+        <tr><td><b>Use it when</b></td><td>Learning, or starts are excellent</td><td>Well-behaved models, good starts</td><td><b>Default choice</b>; then confirm with a second start or method</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section id="fit">
+  <div class="wrap">
+    <h2><span class="n">04</span>Fit your own data</h2>
+    <p class="sub">Paste two columns (x, y), choose a model and press Fit. It runs Levenberg–Marquardt in your browser with automatic starting values and reports estimates, standard errors and 95% confidence intervals. Your data never leaves your computer.</p>
+    <div class="fitgrid">
+      <div class="card">
+        <div class="field" style="margin-bottom:8px">Load an example
+          <span class="chips" id="fitex"></span>
+        </div>
+        <label class="field">Data (x, y), comma, tab or space separated
+          <textarea id="fitdata" spellcheck="false"></textarea>
+        </label>
+        <div class="toolbar" style="margin:10px 0 0">
+          <label class="field">Model <select id="fitmodel"></select></label>
+          <button class="btn primary" id="fitbtn">Fit</button>
+          <button class="btn" id="fitdl" disabled>Download results (CSV)</button>
+        </div>
+        <div class="msg" id="fitmsg"></div>
+      </div>
+      <div>
+        <div class="stage"><canvas id="fitcv" height="330" aria-label="Your data with the fitted curve and confidence band"></canvas></div>
+        <div class="log" style="max-height:none"><table class="t" id="fittab"><thead><tr><th>parameter</th><th>estimate</th><th>std. error</th><th>t</th><th>95% CI</th></tr></thead><tbody></tbody></table></div>
+        <div class="msg" id="fitstats"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="data">
+  <div class="wrap">
+    <h2><span class="n">05</span>Datasets</h2>
+    <p class="sub">Every dataset ships as CSV and in one Excel workbook (an index sheet, NIST certified values and a blank template for your own data). NIST problems have certified answers, so you can check any software against them.</p>
+    <div class="cta" style="margin:0 0 18px"><a class="btn primary" href="data/nonlinear_datasets.xlsx">Download the Excel workbook</a><a class="btn" href="https://github.com/lunganlungpg/nonlinear-estimation/tree/main/data">Browse CSV files</a></div>
+    <div class="scroll"><table class="tbl" id="dstab"><thead><tr><th>Dataset</th><th>Kind</th><th>n</th><th>Model</th><th>About</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+
+<section id="python">
+  <div class="wrap">
+    <h2><span class="n">06</span>Use it in Python</h2>
+    <p class="sub">The <code>nlsfit</code> package contains the same algorithms, implemented readably, plus everything you need to report a fit.</p>
+<pre class="code"><span class="c"># pip install "git+https://github.com/lunganlungpg/nonlinear-estimation.git"</span>
+<span class="k">import</span> nlsfit
+
+data = nlsfit.datasets.<span class="f">load</span>(<span class="s">"puromycin"</span>)
+res = nlsfit.<span class="f">fit</span>(nlsfit.models.michaelis_menten, data.x, data.y, method=<span class="s">"lm"</span>)  <span class="c"># or "gn"</span>
+<span class="f">print</span>(res.<span class="f">summary</span>())                    <span class="c"># estimates, SE, t, p, CI, σ, R², AIC</span>
+res.<span class="f">conf_int</span>(method=<span class="s">"profile"</span>)             <span class="c"># profile-likelihood intervals</span>
+res.<span class="f">predict</span>(x_new, interval=<span class="s">"prediction"</span>)  <span class="c"># bands</span></pre>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Nonlinear Least Squares Lab · MIT licensed · <a href="https://github.com/lunganlungpg/nonlinear-estimation">source on GitHub</a></span>
+    <span>NIST data: <a href="https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml">Statistical Reference Datasets</a></span>
+  </div>
+</footer>
+
+<script>
+(() => {
+"use strict";
+const $ = (s) => document.querySelector(s);
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = (v, d = 5) => !isFinite(v) ? "—" : (Math.abs(v) >= 1e5 || (Math.abs(v) < 1e-3 && v !== 0)) ? v.toExponential(d - 1) : (+v.toPrecision(d)).toString();
+
+/* ---------------- theme ---------------- */
+try { const t = localStorage.getItem("nls-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+$("#theme").addEventListener("click", () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("nls-theme", next); } catch (e) {}
+  landCache = null; drawAll(); drawFit();
+});
+
+/* ---------------- maths helpers ---------------- */
+function solve(A, b) { // Gaussian elimination with partial pivoting; A is p×p (array of arrays)
+  const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let piv = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[piv][c])) piv = r;
+    if (Math.abs(M[piv][c]) < 1e-300) return null;
+    [M[c], M[piv]] = [M[piv], M[c]];
+    for (let r = c + 1; r < n; r++) { const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; }
+  }
+  const x = new Array(n);
+  for (let r = n - 1; r >= 0; r--) { let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; }
+  return x.every(isFinite) ? x : null;
+}
+function inverse(A) { const n = A.length; const cols = []; for (let j = 0; j < n; j++) { const e = Array(n).fill(0); e[j] = 1; const c = solve(A, e); if (!c) return null; cols.push(c); } return A.map((_, i) => cols.map((c) => c[i])); }
+function residuals(model, x, y, th) { return x.map((xi, i) => model.f(xi, th) - y[i]); }
+function sseOf(r) { let s = 0; for (const v of r) s += v * v; return isFinite(s) ? s : Infinity; }
+function jacobian(model, x, th) {
+  const p = th.length, J = x.map(() => new Array(p));
+  for (let j = 0; j < p; j++) {
+    const h = 6.055e-6 * Math.max(Math.abs(th[j]), 1e-8 + Math.abs(th[j]) || 1);
+    const tp = th.slice(), tm = th.slice(); tp[j] += h; tm[j] -= h;
+    for (let i = 0; i < x.length; i++) J[i][j] = (model.f(x[i], tp) - model.f(x[i], tm)) / (2 * h);
+  }
+  return J;
+}
+function normal(J, r) { // JᵀJ and Jᵀr
+  const p = J[0].length, A = Array.from({ length: p }, () => Array(p).fill(0)), g = Array(p).fill(0);
+  for (let i = 0; i < J.length; i++) for (let a = 0; a < p; a++) { g[a] += J[i][a] * r[i]; for (let b = 0; b < p; b++) A[a][b] += J[i][a] * J[i][b]; }
+  return { A, g };
+}
+function relOffset(A, g, sse, n) { // Bates–Watts relative offset via tangential part gᵀ(JᵀJ)⁻¹g
+  const p = g.length, z = solve(A, g); if (!z) return Infinity;
+  let tan = 0; for (let k = 0; k < p; k++) tan += g[k] * z[k];
+  const orth = Math.max(sse - tan, 1e-300 * sse);
+  return n > p ? Math.sqrt((tan / p) / (orth / (n - p))) : Math.sqrt(tan / sse);
+}
+
+/* ---------------- solvers (one iteration at a time) ---------------- */
+function gnInit(model, x, y, th) { const r = residuals(model, x, y, th); return { th: th.slice(), sse: sseOf(r), it: 0, done: false, status: "running", hist: [{ th: th.slice(), sse: sseOf(r), note: "start" }] }; }
+function gnStep(S, model, x, y, halving) {
+  if (S.done) return;
+  const r = residuals(model, x, y, S.th), J = jacobian(model, x, S.th), { A, g } = normal(J, r);
+  const d = solve(A, g.map((v) => -v));
+  S.it++;
+  if (!d) { S.done = true; S.status = "failed: JᵀJ is singular"; S.hist.push({ th: S.th.slice(), sse: S.sse, note: "singular JᵀJ" }); return; }
+  let fac = 1, th = S.th.map((v, k) => v + d[k]), sse = sseOf(residuals(model, x, y, th)), halves = 0;
+  if (halving) while (!(sse <= S.sse) && halves < 30) { fac /= 2; halves++; th = S.th.map((v, k) => v + fac * d[k]); sse = sseOf(residuals(model, x, y, th)); }
+  const note = halves ? `step halved ${halves}×` : (sse > S.sse ? "SSE went UP" : "full step");
+  if (!isFinite(sse) || th.some((v) => !isFinite(v))) { S.done = true; S.status = "diverged (model overflowed)"; S.th = th; S.sse = Infinity; S.hist.push({ th: th.slice(), sse: Infinity, note: "diverged" }); return; }
+  if (halving && sse > S.sse) { S.done = true; S.status = "stopped: no step reduces SSE"; return; }
+  const old = S.sse; S.th = th; S.sse = sse;
+  S.hist.push({ th: th.slice(), sse, note });
+  checkStop(S, model, x, y, old, d.map((v) => v * fac));
+}
+function checkStop(S, model, x, y, oldSse, step) {
+  const r = residuals(model, x, y, S.th), J = jacobian(model, x, S.th), { A, g } = normal(J, r);
+  const off = relOffset(A, g, S.sse, x.length); S.offset = off;
+  const small = step.every((s, k) => Math.abs(s) <= 1e-12 * (Math.abs(S.th[k]) + 1e-12));
+  if (off <= 1e-8) { S.done = true; S.status = "converged"; }
+  else if (small || (oldSse - S.sse >= 0 && oldSse - S.sse <= 1e-15 * oldSse)) { S.done = true; S.status = off < 1e-5 ? "converged" : "stalled (not a minimum)"; }
+  else if (S.it >= 200) { S.done = true; S.status = "stopped: 200 iterations"; }
+  else if (S.sse > 1e100) { S.done = true; S.status = "diverged"; }
+}
+function lmInit(model, x, y, th, tau) {
+  const r = residuals(model, x, y, th), J = jacobian(model, x, th), { A } = normal(J, r);
+  const D = A.map((row, k) => Math.max(row[k], 1e-12));
+  const lam = tau * Math.max(...A.map((row, k) => row[k]));
+  return { th: th.slice(), sse: sseOf(r), it: 0, lam, nu: 2, D, done: false, status: "running", hist: [{ th: th.slice(), sse: sseOf(r), lam, note: "start" }] };
+}
+function lmTrial(S, model, x, y, lam) { // returns {d, A, g} for a given λ
+  const r = residuals(model, x, y, S.th), J = jacobian(model, x, S.th), { A, g } = normal(J, r);
+  const Ad = A.map((row, a) => row.map((v, b) => v + (a === b ? lam * S.D[a] : 0)));
+  return { d: solve(Ad, g.map((v) => -v)), A, g };
+}
+function lmStep(S, model, x, y, update) {
+  if (S.done) return;
+  S.it++;
+  const { d, A, g } = lmTrial(S, model, x, y, S.lam);
+  if (!d) { S.lam *= 10; S.hist.push({ th: S.th.slice(), sse: S.sse, lam: S.lam, note: "solve failed, λ↑", rej: true }); return; }
+  const th = S.th.map((v, k) => v + d[k]), sse = sseOf(residuals(model, x, y, th));
+  let dAd = 0, dg = 0; for (let a = 0; a < d.length; a++) { dg += d[a] * g[a]; for (let b = 0; b < d.length; b++) dAd += d[a] * A[a][b] * d[b]; }
+  const pred = -2 * dg - dAd, rho = pred > 0 && isFinite(sse) ? (S.sse - sse) / pred : -1;
+  if (rho > 0) {
+    const old = S.sse; S.th = th; S.sse = sse;
+    if (update === "nielsen") { S.lam *= Math.max(1 / 3, 1 - Math.pow(2 * rho - 1, 3)); S.nu = 2; } else S.lam /= 10;
+    S.lam = Math.max(S.lam, 1e-15);
+    const nA = normal(jacobian(model, x, th), residuals(model, x, y, th)).A; S.D = S.D.map((v, k) => Math.max(v, nA[k][k]));
+    S.hist.push({ th: th.slice(), sse, lam: S.lam, note: `accepted (ρ=${rho.toFixed(2)})` });
+    checkStop(S, model, x, y, old, d);
+  } else {
+    if (update === "nielsen") { S.lam *= S.nu; S.nu *= 2; } else S.lam *= 10;
+    S.hist.push({ th: S.th.slice(), sse: S.sse, lam: S.lam, note: `rejected: SSE would be ${fmt(sse, 4)}`, rej: true, tried: th });
+    if (S.lam > 1e16) { S.done = true; S.status = "stalled: λ too large"; }
+    if (S.it >= 200) { S.done = true; S.status = "stopped: 200 iterations"; }
+  }
+}
+
+/* ---------------- models ---------------- */
+const MODELS = {
+  michaelis_menten: { label: "Michaelis–Menten: Vmax·x/(Km+x)", names: ["Vmax", "Km"], f: (x, p) => p[0] * x / (p[1] + x),
+    guess(x, y) { const ym = Math.max(...y), half = ym / 2; let k = x[0]; for (let i = 0; i < x.length; i++) if (y[i] >= half) { k = x[i]; break; } return [ym * 1.1, k]; } },
+  exponential_decay: { label: "Exponential decay: a·exp(−k·x)", names: ["a", "k"], f: (x, p) => p[0] * Math.exp(-p[1] * x),
+    guess(x, y) { const pts = x.map((v, i) => [v, y[i]]).filter((q) => q[1] > 0); const [s, b] = linfit(pts.map((q) => q[0]), pts.map((q) => Math.log(q[1]))); return [Math.exp(b), Math.max(-s, 1e-6)]; } },
+  exponential_rise: { label: "Exponential rise: a·(1 − exp(−k·x))", names: ["a", "k"], f: (x, p) => p[0] * (1 - Math.exp(-p[1] * x)),
+    guess(x, y) { const a = 1.05 * Math.max(...y); const ks = x.map((v, i) => v > 0 ? -Math.log(1 - Math.min(y[i] / a, 0.999)) / v : NaN).filter(isFinite).sort((u, v) => u - v); return [a, ks[ks.length >> 1] || 1]; } },
+  asymptotic_regression: { label: "Asymptotic (Mitscherlich): a − b·exp(−c·x)", names: ["a", "b", "c"], f: (x, p) => p[0] - p[1] * Math.exp(-p[2] * x),
+    guess(x, y) { const a = Math.max(...y) + 0.05 * (Math.max(...y) - Math.min(...y)); const i0 = x.indexOf(Math.min(...x)); const b = a - y[i0]; const cs = x.map((v, i) => v > 0 ? -Math.log(Math.max((a - y[i]) / b, 1e-6)) / v : NaN).filter(isFinite).sort((u, v) => u - v); return [a, b, Math.max(cs[cs.length >> 1] || 0.01, 1e-6)]; } },
+  logistic: { label: "Logistic: Asym/(1+exp((xmid−x)/scal))", names: ["Asym", "xmid", "scal"], f: (x, p) => p[0] / (1 + Math.exp((p[1] - x) / p[2])),
+    guess(x, y) { const a = 1.05 * Math.max(...y), o = order(x); let xm = x[o[0]]; for (const i of o) if (y[i] >= a / 2) { xm = x[i]; break; } return [a, xm, (Math.max(...x) - Math.min(...x)) / 8 || 1]; } },
+  gompertz: { label: "Gompertz: Asym·exp(−b2·b3^x)", names: ["Asym", "b2", "b3"], f: (x, p) => p[0] * Math.exp(-p[1] * Math.pow(p[2], x)),
+    guess(x, y) { const a = 1.05 * Math.max(...y); const z = y.map((v) => Math.log(-Math.log(Math.min(Math.max(v / a, 1e-6), 1 - 1e-6)))); const [s, b] = linfit(x, z); return [a, Math.exp(b), Math.exp(s)]; } },
+  power_law: { label: "Power law: a·x^b", names: ["a", "b"], f: (x, p) => p[0] * Math.pow(x, p[1]),
+    guess(x, y) { const pts = x.map((v, i) => [v, y[i]]).filter((q) => q[0] > 0 && q[1] > 0); const [s, b] = linfit(pts.map((q) => Math.log(q[0])), pts.map((q) => Math.log(q[1]))); return [Math.exp(b), s]; } },
+  four_pl: { label: "4-parameter logistic (dose–response)", names: ["bottom", "top", "EC50", "hill"], f: (x, p) => p[0] + (p[1] - p[0]) / (1 + Math.pow(x / p[2], p[3])),
+    guess(x, y) { const o = order(x), top = y[o[0]], bot = y[o[o.length - 1]], mid = (top + bot) / 2; let best = o[0]; for (const i of o) if (Math.abs(y[i] - mid) < Math.abs(y[best] - mid)) best = i; return [bot, top, x[best] || 1, 1]; } },
+  gaussian_peak: { label: "Gaussian peak: amp·exp(−½((x−μ)/σ)²)", names: ["amp", "mu", "sigma"], f: (x, p) => p[0] * Math.exp(-0.5 * ((x - p[1]) / p[2]) ** 2),
+    guess(x, y) { const i = y.indexOf(Math.max(...y)); return [y[i], x[i], (Math.max(...x) - Math.min(...x)) / 6]; } },
+};
+function linfit(x, y) { const n = x.length; let sx = 0, sy = 0, sxx = 0, sxy = 0; for (let i = 0; i < n; i++) { sx += x[i]; sy += y[i]; sxx += x[i] * x[i]; sxy += x[i] * y[i]; } const s = (n * sxy - sx * sy) / (n * sxx - sx * sx); return [s, (sy - s * sx) / n]; }
+function order(x) { return x.map((_, i) => i).sort((a, b) => x[a] - x[b]); }
+
+/* ---------------- datasets ---------------- */
+const DATA = {
+  puromycin: { label: "Puromycin (enzyme kinetics)", kind: "real", model: "michaelis_menten",
+    x: [0.02, 0.02, 0.06, 0.06, 0.11, 0.11, 0.22, 0.22, 0.56, 0.56, 1.10, 1.10], y: [76, 47, 97, 107, 123, 139, 159, 152, 191, 201, 207, 200],
+    xl: "substrate (ppm)", yl: "velocity", range: [[140, 260], [0.005, 0.3]], best: [212.6837, 0.0641212], starts: { "poor start": [240, 0.25], "good start": [160, 0.02] },
+    about: "Treloar (1974); Bates & Watts (1988). Real data." },
+  boxbod: { label: "NIST BoxBOD (oxygen demand)", kind: "nist", model: "exponential_rise",
+    x: [1, 2, 3, 5, 7, 10], y: [109, 149, 149, 191, 213, 224], xl: "days", yl: "BOD (mg/L)",
+    range: [[60, 300], [0.05, 3]], best: [213.80940889, 0.54723748542], starts: { "NIST start 2": [100, 0.75], "far start": [80, 2.8] },
+    about: "NIST higher difficulty. Only 6 points." },
+  danwood: { label: "NIST DanWood (radiated energy)", kind: "nist", model: "power_law",
+    x: [1.309, 1.471, 1.490, 1.565, 1.611, 1.680], y: [2.138, 3.421, 3.597, 4.340, 4.882, 5.660], xl: "temperature (1000 K)", yl: "energy",
+    range: [[0.1, 2.2], [1.5, 6]], best: [0.76886226176, 3.8604055871], starts: { "NIST start 1": [1, 5], "far start": [2, 2] },
+    about: "NIST lower difficulty. Power law." },
+  misra1a: { label: "NIST Misra1a (dental adsorption)", kind: "nist", model: "exponential_rise",
+    x: [77.6, 114.9, 141.1, 190.8, 239.9, 289.0, 332.8, 378.4, 434.8, 477.3, 536.8, 593.1, 689.1, 760.0],
+    y: [10.07, 14.73, 17.94, 23.93, 29.61, 35.18, 40.02, 44.82, 50.76, 55.05, 61.01, 66.40, 75.47, 81.78], xl: "pressure", yl: "volume",
+    range: [[100, 700], [0.0001, 0.0014]], best: [238.94212918, 5.5015643181e-4], starts: { "NIST start 1": [500, 1e-4], "NIST start 2": [250, 5e-4] },
+    about: "NIST lower difficulty, but a long curved valley." },
+  drug_elimination: { label: "Drug elimination (simulated)", kind: "simulated", model: "exponential_decay",
+    x: [0.25, 0.5, 1, 1.5, 2, 3, 4, 6, 8, 12], y: null, xl: "time (h)", yl: "concentration (mg/L)",
+    range: [[2, 22], [0.02, 1.2]], best: null, starts: { "far start": [20, 1.1], "low start": [4, 0.05] },
+    about: "Simulated, true a = 12, k = 0.35, 6% multiplicative noise." },
+};
+DATA.drug_elimination.y = [10.995, 10.256, 8.318, 6.729, 5.799, 3.957, 2.97, 1.593, 0.708, 0.173];
+
+/* ---------------- canvas helpers ---------------- */
+function fitCanvas(cv) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  if (!cv.dataset.h) cv.dataset.h = cv.getAttribute("height");
+  const w = cv.clientWidth, h = parseInt(cv.dataset.h, 10);
+  cv.style.height = h + "px"; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+function ticks(lo, hi, n = 5) {
+  const span = hi - lo, step0 = span / n, mag = Math.pow(10, Math.floor(Math.log10(step0))), err = step0 / mag;
+  const step = (err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1) * mag, out = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-9; v += step) out.push(+v.toPrecision(12));
+  return out;
+}
+function hex(c) { c = c.replace("#", ""); if (c.length === 3) c = c.split("").map((q) => q + q).join(""); const n = parseInt(c, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+function axes(ctx, w, h, m, xr, yr, xl, yl, xfmt, yfmt) {
+  ctx.font = "11px Inter, sans-serif"; ctx.fillStyle = css("--muted"); ctx.strokeStyle = css("--border"); ctx.lineWidth = 1;
+  const X = (v) => m.l + (v - xr[0]) / (xr[1] - xr[0]) * (w - m.l - m.r), Y = (v) => h - m.b - (v - yr[0]) / (yr[1] - yr[0]) * (h - m.t - m.b);
+  for (const t of ticks(xr[0], xr[1], w < 420 ? 4 : 6)) { ctx.beginPath(); ctx.moveTo(X(t), m.t); ctx.lineTo(X(t), h - m.b); ctx.stroke(); ctx.textAlign = "center"; ctx.fillText(xfmt ? xfmt(t) : fmt(t, 3), X(t), h - m.b + 14); }
+  for (const t of ticks(yr[0], yr[1], 5)) { ctx.beginPath(); ctx.moveTo(m.l, Y(t)); ctx.lineTo(w - m.r, Y(t)); ctx.stroke(); ctx.textAlign = "right"; ctx.fillText(yfmt ? yfmt(t) : fmt(t, 3), m.l - 5, Y(t) + 4); }
+  ctx.textAlign = "center"; ctx.fillStyle = css("--text"); ctx.font = "600 12px Inter, sans-serif";
+  ctx.fillText(xl, m.l + (w - m.l - m.r) / 2, h - 4);
+  ctx.save(); ctx.translate(12, m.t + (h - m.t - m.b) / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(yl, 0, 0); ctx.restore(); ctx.textAlign = "start";
+  return { X, Y };
+}
+
+/* ---------------- lab state ---------------- */
+const lab = { key: "puromycin", start: null, gn: null, lm: null, timer: 0 };
+let landCache = null;
+const LM = { m: { l: 58, r: 12, t: 10, b: 38 } };
+function cur() { const d = DATA[lab.key]; return { d, model: MODELS[d.model] }; }
+function tau() { return Math.pow(10, parseFloat($("#tau").value)); }
+function resetLab(start) {
+  const { d, model } = cur();
+  lab.start = start || Object.values(d.starts)[0];
+  lab.gn = gnInit(model, d.x, d.y, lab.start);
+  lab.lm = lmInit(model, d.x, d.y, lab.start, tau());
+  stopRun(); drawAll();
+}
+function stepBoth() {
+  const { d, model } = cur();
+  if ($("#showgn").checked) gnStep(lab.gn, model, d.x, d.y, $("#gnvar").value === "halving");
+  if ($("#showlm").checked) lmStep(lab.lm, model, d.x, d.y, $("#lmupd").value);
+  drawAll();
+  const gnDone = lab.gn.done || !$("#showgn").checked, lmDone = lab.lm.done || !$("#showlm").checked;
+  return gnDone && lmDone;
+}
+function stopRun() { clearInterval(lab.timer); lab.timer = 0; $("#run").textContent = "Run ▶"; }
+$("#step").addEventListener("click", () => { stopRun(); stepBoth(); });
+$("#run").addEventListener("click", () => {
+  if (lab.timer) return stopRun();
+  $("#run").textContent = "Pause ❚❚";
+  lab.timer = setInterval(() => { if (stepBoth()) stopRun(); }, 380);
+});
+$("#reset").addEventListener("click", () => resetLab(lab.start));
+["#gnvar", "#lmupd"].forEach((s) => $(s).addEventListener("change", () => resetLab(lab.start)));
+$("#tau").addEventListener("input", () => { $("#tauout").textContent = `λ₀ = 10^${$("#tau").value} · max diag(JᵀJ)`; resetLab(lab.start); });
+["#showgn", "#showlm", "#showpath"].forEach((s) => $(s).addEventListener("change", drawAll));
+const dsSel = $("#ds");
+for (const [k, d] of Object.entries(DATA)) dsSel.add(new Option(d.label, k));
+dsSel.addEventListener("change", () => { lab.key = dsSel.value; landCache = null; buildPresets(); resetLab(); });
+function buildPresets() {
+  const box = $("#presets"); box.innerHTML = "";
+  for (const [name, st] of Object.entries(DATA[lab.key].starts)) {
+    const b = document.createElement("button"); b.textContent = name; b.title = `start at (${st.join(", ")})`;
+    b.addEventListener("click", () => resetLab(st)); box.appendChild(b);
+  }
+}
+
+/* ---------------- landscape ---------------- */
+const landCv = $("#land");
+function landScale(w, h) {
+  const { d } = cur(), m = LM.m, [r0, r1] = d.range;
+  return {
+    X: (v) => m.l + (v - r0[0]) / (r0[1] - r0[0]) * (w - m.l - m.r), Y: (v) => h - m.b - (v - r1[0]) / (r1[1] - r1[0]) * (h - m.t - m.b),
+    iX: (px) => r0[0] + (px - m.l) / (w - m.l - m.r) * (r0[1] - r0[0]), iY: (py) => r1[0] + (h - m.b - py) / (h - m.t - m.b) * (r1[1] - r1[0]),
+  };
+}
+function drawLandscape() {
+  const { ctx, w, h } = fitCanvas(landCv), { d, model } = cur(), m = LM.m, S = landScale(w, h);
+  ctx.clearRect(0, 0, w, h);
+  const pw = w - m.l - m.r, ph = h - m.t - m.b, step = 3, cw = Math.ceil(pw / step), ch = Math.ceil(ph / step);
+  const key = `${lab.key}|${w}|${h}|${document.documentElement.dataset.theme || ""}`;
+  if (!landCache || landCache.key !== key) {
+    const L = new Float64Array(cw * ch); let lo = Infinity, hi = -Infinity;
+    for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++) {
+      const th = [S.iX(m.l + i * step + step / 2), S.iY(m.t + j * step + step / 2)];
+      const v = Math.log10(sseOf(residuals(model, d.x, d.y, th)) + 1e-300);
+      L[j * cw + i] = isFinite(v) ? v : NaN; if (isFinite(v)) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    }
+    hi = Math.min(hi, lo + 5);
+    const deep = hex(css("--accent")), flat = hex(css("--surface")), img = new ImageData(cw, ch);
+    for (let k = 0; k < L.length; k++) {
+      const t = isNaN(L[k]) ? 1 : Math.min(1, Math.max(0, (L[k] - lo) / (hi - lo)));
+      const c = mix(deep, flat, Math.pow(t, 0.7)); img.data.set([c[0], c[1], c[2], 255], k * 4);
+    }
+    const off = document.createElement("canvas"); off.width = cw; off.height = ch; off.getContext("2d").putImageData(img, 0, 0);
+    landCache = { key, off, L, lo, hi, cw, ch };
+  }
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(landCache.off, m.l, m.t, pw, ph);
+  // contour lines (marching squares) at even log-SSE levels
+  const { L, lo, hi, cw: CW, ch: CH } = landCache;
+  ctx.strokeStyle = "rgba(127,127,127,.55)"; ctx.lineWidth = 0.7; ctx.beginPath();
+  const nlev = 14;
+  for (let q = 1; q < nlev; q++) {
+    const lev = lo + (hi - lo) * Math.pow(q / nlev, 1.6);
+    for (let j = 0; j < CH - 1; j++) for (let i = 0; i < CW - 1; i++) {
+      const a = L[j * CW + i] - lev, b = L[j * CW + i + 1] - lev, c = L[(j + 1) * CW + i + 1] - lev, e = L[(j + 1) * CW + i] - lev;
+      if ([a, b, c, e].some(isNaN)) continue;
+      const pts = [], x0 = m.l + i * step + step / 2, y0 = m.t + j * step + step / 2;
+      if ((a > 0) !== (b > 0)) pts.push([x0 + step * a / (a - b), y0]);
+      if ((b > 0) !== (c > 0)) pts.push([x0 + step, y0 + step * b / (b - c)]);
+      if ((e > 0) !== (c > 0)) pts.push([x0 + step * e / (e - c), y0 + step]);
+      if ((a > 0) !== (e > 0)) pts.push([x0, y0 + step * a / (a - e)]);
+      if (pts.length >= 2) { ctx.moveTo(...pts[0]); ctx.lineTo(...pts[1]); }
+    }
+  }
+  ctx.stroke();
+  ctx.save(); axes(ctx, w, h, m, d.range[0], d.range[1], model.names[0], model.names[1]); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.rect(m.l, m.t, pw, ph); ctx.clip();
+  if (d.best) star(ctx, S.X(d.best[0]), S.Y(d.best[1]), 9, css("--text"));
+  if ($("#showpath").checked && $("#showlm").checked && !lab.lm.done) drawLambdaPath(ctx, S);
+  if ($("#showgn").checked) drawPath(ctx, S, lab.gn, css("--gn"));
+  if ($("#showlm").checked) drawPath(ctx, S, lab.lm, css("--lm"));
+  ctx.restore();
+}
+function star(ctx, x, y, r, color) {
+  ctx.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; ctx.lineTo(x + rr * Math.cos(a), y + rr * Math.sin(a)); }
+  ctx.closePath(); ctx.fillStyle = css("--surface"); ctx.fill(); ctx.strokeStyle = color; ctx.lineWidth = 1.6; ctx.stroke();
+}
+function drawPath(ctx, S, st, color) {
+  const pts = st.hist.filter((h) => !h.rej && h.th.every(isFinite)).map((h) => [S.X(h.th[0]), S.Y(h.th[1])]);
+  ctx.strokeStyle = color; ctx.lineWidth = 2.2; ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p))); ctx.stroke();
+  for (const h of st.hist) if (h.rej && h.tried) { const [x1, y1] = [S.X(h.th[0]), S.Y(h.th[1])], [x2, y2] = [S.X(h.tried[0]), S.Y(h.tried[1])];
+    ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font = "bold 12px Inter"; ctx.fillStyle = color; ctx.fillText("✕", x2 - 4, y2 + 4); }
+  pts.forEach((p, i) => { ctx.beginPath(); ctx.arc(p[0], p[1], i === 0 ? 5.5 : i === pts.length - 1 ? 5 : 3, 0, 7); ctx.fillStyle = i === 0 ? css("--surface") : color; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = color; ctx.stroke(); });
+}
+function drawLambdaPath(ctx, S) {
+  const { d, model } = cur(), st = lab.lm, pts = [];
+  for (let e = -8; e <= 6; e += 0.1) { const { d: dd } = lmTrial(st, model, d.x, d.y, Math.pow(10, e)); if (dd) pts.push([S.X(st.th[0] + dd[0]), S.Y(st.th[1] + dd[1])]); }
+  if (pts.length < 2) return;
+  ctx.strokeStyle = css("--path"); ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p))); ctx.stroke(); ctx.setLineDash([]);
+  const { d: now } = lmTrial(st, model, d.x, d.y, st.lam);
+  if (now) { ctx.beginPath(); ctx.arc(S.X(st.th[0] + now[0]), S.Y(st.th[1] + now[1]), 4.5, 0, 7); ctx.fillStyle = css("--path"); ctx.fill(); }
+  ctx.font = "11px Inter"; ctx.fillStyle = css("--path"); ctx.fillText("λ→0 (GN step)", pts[0][0] + 6, pts[0][1] - 6);
+}
+landCv.addEventListener("click", (e) => {
+  const r = landCv.getBoundingClientRect(), S = landScale(r.width, r.height);
+  const th = [S.iX(e.clientX - r.left), S.iY(e.clientY - r.top)];
+  const { d } = cur();
+  if (th[0] < d.range[0][0] || th[0] > d.range[0][1] || th[1] < d.range[1][0] || th[1] > d.range[1][1]) return;
+  resetLab(th.map((v) => +v.toPrecision(4)));
+});
+landCv.addEventListener("mousemove", (e) => {
+  const r = landCv.getBoundingClientRect(), S = landScale(r.width, r.height), { d, model } = cur();
+  const th = [S.iX(e.clientX - r.left), S.iY(e.clientY - r.top)];
+  $("#hover").textContent = `${model.names[0]}=${fmt(th[0], 4)}  ${model.names[1]}=${fmt(th[1], 4)}  SSE=${fmt(sseOf(residuals(model, d.x, d.y, th)), 4)}`;
+});
+
+/* ---------------- data panel ---------------- */
+function drawCurves() {
+  const cv = $("#curve"), { ctx, w, h } = fitCanvas(cv), { d, model } = cur(), m = { l: 56, r: 14, t: 12, b: 38 };
+  const xr = [Math.min(0, ...d.x), Math.max(...d.x) * 1.04], ymax = Math.max(...d.y) * 1.15, yr = [Math.min(0, ...d.y), ymax];
+  ctx.clearRect(0, 0, w, h);
+  const { X, Y } = axes(ctx, w, h, m, xr, yr, d.xl, d.yl);
+  ctx.save(); ctx.beginPath(); ctx.rect(m.l, m.t, w - m.l - m.r, h - m.t - m.b); ctx.clip();
+  const curve = (th, color, dash, lw) => { ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.setLineDash(dash); ctx.beginPath(); let started = false;
+    for (let i = 0; i <= 240; i++) { const xv = xr[0] + (xr[1] - xr[0]) * i / 240, yv = model.f(xv, th); if (!isFinite(yv)) { started = false; continue; } const py = Math.max(-1e4, Math.min(1e4, Y(yv))); started ? ctx.lineTo(X(xv), py) : ctx.moveTo(X(xv), py); started = true; }
+    ctx.stroke(); ctx.setLineDash([]); };
+  if (d.best) curve(d.best, css("--muted"), [4, 4], 1.2);
+  if ($("#showgn").checked && lab.gn.th.every(isFinite)) curve(lab.gn.th, css("--gn"), [], 2.4);
+  if ($("#showlm").checked) curve(lab.lm.th, css("--lm"), [], 2.4);
+  for (let i = 0; i < d.x.length; i++) { ctx.beginPath(); ctx.arc(X(d.x[i]), Y(d.y[i]), 4.5, 0, 7); ctx.fillStyle = css("--text"); ctx.fill(); ctx.strokeStyle = css("--surface"); ctx.lineWidth = 1.5; ctx.stroke(); }
+  ctx.restore();
+  $("#dsinfo").innerHTML = `${model.label.split(":")[1] || model.label} · ${d.about}`;
+}
+
+/* ---------------- status + log ---------------- */
+function badge(st) { const cls = st.status === "converged" ? "ok" : st.status === "running" ? "run" : "bad"; return `<span class="badge ${cls}">${st.status}</span>`; }
+function statusCard(st, name, color, extra) {
+  const { model } = cur();
+  return `<b class="t" style="color:${color}">${name}</b>${badge(st)}<div class="kv">
+    <span>iteration</span><span>${st.it}</span>
+    ${model.names.map((n, k) => `<span>${n}</span><span>${fmt(st.th[k], 7)}</span>`).join("")}
+    <span>SSE</span><span>${fmt(st.sse, 7)}</span>${extra || ""}</div>`;
+}
+function explain() {
+  const { d } = cur(), gn = lab.gn, lm = lab.lm, msgs = [];
+  if (gn.it === 0 && lm.it === 0) msgs.push("Press <b>Step</b> to take one iteration of each method, or <b>Run</b> to animate. The purple dashed curve shows every step LM could take from here: λ→0 gives exactly the Gauss–Newton step, large λ gives a short step downhill.");
+  if (gn.status.startsWith("diverged")) msgs.push("Gauss–Newton <b>diverged</b>: its tangent-line model was trusted too far, the step overshot, and the model blew up. Switch to <i>step halving</i> or use LM.");
+  else if (gn.hist.some((h) => h.note === "SSE went UP")) msgs.push("Pure Gauss–Newton accepted a step that made the fit <b>worse</b> (SSE went up). It has no safeguard against this; LM would have rejected that step and increased λ.");
+  if (lm.hist.some((h) => h.rej)) msgs.push("LM <b>rejected</b> a step (✕): the actual SSE reduction was poor compared with the prediction, so it increased λ, making the next step shorter and more like gradient descent.");
+  if (gn.status === "converged" && lm.status === "converged") msgs.push(`Both converged. Gauss–Newton took ${gn.it} iterations and LM ${lm.it}. Near the minimum GN is usually faster; LM's advantage is reliability from poor starts.`);
+  if (lm.status.startsWith("stalled")) msgs.push("LM <b>stalled</b>: it is on a flat plateau where the model barely depends on one parameter, so no small step improves the fit. Professional LM codes (MINPACK) stall here too. Try another start.");
+  $("#explain").innerHTML = msgs.join(" ") || "Keep stepping…";
+}
+function updateLog() {
+  const { model } = cur(); $("#h1").textContent = model.names[0]; $("#h2").textContent = model.names[1];
+  const rows = [];
+  const push = (st, name, color) => st.hist.forEach((h, i) => rows.push({ i, name, color, ...h }));
+  if ($("#showgn").checked) push(lab.gn, "GN", css("--gn"));
+  if ($("#showlm").checked) push(lab.lm, "LM", css("--lm"));
+  rows.sort((a, b) => b.i - a.i || a.name.localeCompare(b.name));
+  $("#logt tbody").innerHTML = rows.slice(0, 80).map((r) => `<tr class="${r.rej ? "rej" : ""}"><td style="color:${r.color};font-weight:700">${r.name}</td><td>${r.i}</td><td class="mono">${fmt(r.th[0], 6)}</td><td class="mono">${fmt(r.th[1], 6)}</td><td class="mono">${fmt(r.sse, 6)}</td><td class="mono">${r.lam !== undefined ? fmt(r.lam, 3) : ""}</td><td style="text-decoration:none">${r.note}</td></tr>`).join("");
+}
+function drawAll() {
+  drawLandscape(); drawCurves();
+  $("#st-gn").innerHTML = statusCard(lab.gn, `Gauss–Newton (${$("#gnvar").value === "pure" ? "pure" : "step halving"})`, css("--gn"));
+  $("#st-lm").innerHTML = statusCard(lab.lm, "Levenberg–Marquardt", css("--lm"), `<span>λ</span><span>${fmt(lab.lm.lam, 4)}</span>`);
+  $("#st-gn").style.opacity = $("#showgn").checked ? 1 : 0.45; $("#st-lm").style.opacity = $("#showlm").checked ? 1 : 0.45;
+  explain(); updateLog();
+}
+
+/* ---------------- fit your own data ---------------- */
+function lgamma(z) { const g = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5]; let x = z, y = z, t = x + 5.5; t -= (x + 0.5) * Math.log(t); let s = 1.000000000190015; for (const c of g) s += c / ++y; return -t + Math.log(2.5066282746310005 * s / x); }
+function betacf(a, b, x) { let qab = a + b, qap = a + 1, qam = a - 1, c = 1, d = 1 - qab * x / qap; d = 1 / (Math.abs(d) < 1e-30 ? 1e-30 : d); let h = d;
+  for (let m = 1; m <= 200; m++) { const m2 = 2 * m; let aa = m * (b - m) * x / ((qam + m2) * (a + m2)); d = 1 + aa * d; d = 1 / (Math.abs(d) < 1e-30 ? 1e-30 : d); c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30; h *= d * c;
+    aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2)); d = 1 + aa * d; d = 1 / (Math.abs(d) < 1e-30 ? 1e-30 : d); c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30; const del = d * c; h *= del; if (Math.abs(del - 1) < 3e-14) break; } return h; }
+function ibeta(a, b, x) { if (x <= 0) return 0; if (x >= 1) return 1; const bt = Math.exp(lgamma(a + b) - lgamma(a) - lgamma(b) + a * Math.log(x) + b * Math.log(1 - x)); return x < (a + 1) / (a + b + 2) ? bt * betacf(a, b, x) / a : 1 - bt * betacf(b, a, 1 - x) / b; }
+function tcdf(t, df) { const p = 0.5 * ibeta(df / 2, 0.5, df / (df + t * t)); return t > 0 ? 1 - p : p; }
+function tq(p, df) { let lo = 0, hi = 1000; for (let i = 0; i < 100; i++) { const mid = (lo + hi) / 2; tcdf(mid, df) < p ? (lo = mid) : (hi = mid); } return (lo + hi) / 2; }
+
+function fitLM(model, x, y, th0) {
+  let S = lmInit(model, x, y, th0, 1e-3);
+  for (let k = 0; k < 500 && !S.done; k++) lmStep(S, model, x, y, "nielsen");
+  return S;
+}
+let lastFit = null;
+function parseData(text) {
+  const x = [], y = [];
+  for (const line of text.split(/\r?\n/)) {
+    const parts = line.trim().split(/[\s,;]+/).filter(Boolean);
+    if (parts.length < 2) continue;
+    const a = parseFloat(parts[0]), b = parseFloat(parts[1]);
+    if (isFinite(a) && isFinite(b)) { x.push(a); y.push(b); }
+  }
+  return { x, y };
+}
+function runFit() {
+  const msg = $("#fitmsg"), model = MODELS[$("#fitmodel").value], { x, y } = parseData($("#fitdata").value), p = model.names.length;
+  msg.className = "msg";
+  if (x.length <= p) { msg.className = "msg err"; msg.textContent = `Need more than ${p} valid (x, y) rows; found ${x.length}.`; lastFit = null; drawFit(); return; }
+  let th0;
+  try { th0 = model.guess(x, y); } catch (e) { th0 = null; }
+  if (!th0 || !th0.every(isFinite)) th0 = Array(p).fill(1);
+  const S = fitLM(model, x, y, th0), n = x.length, df = n - p;
+  const r = residuals(model, x, y, S.th), J = jacobian(model, x, S.th), { A } = normal(J, r), inv = inverse(A);
+  const s2 = S.sse / df, q = tq(0.975, df);
+  const se = inv ? inv.map((row, k) => Math.sqrt(Math.max(row[k], 0) * s2)) : Array(p).fill(NaN);
+  const ybar = y.reduce((a, b) => a + b, 0) / n, sst = y.reduce((a, v) => a + (v - ybar) ** 2, 0);
+  const aic = n * Math.log(S.sse / n) + n * (1 + Math.log(2 * Math.PI)) + 2 * (p + 1);
+  lastFit = { model, x, y, th: S.th, se, inv, s2, q, df, n, sse: S.sse, r2: 1 - S.sse / sst, aic, S };
+  msg.className = S.status === "converged" ? "msg ok" : "msg err";
+  msg.textContent = S.status === "converged" ? `Converged in ${S.it} Levenberg–Marquardt iterations.` : `Did not converge (${S.status}). Try another model or check the data.`;
+  $("#fittab tbody").innerHTML = model.names.map((nm, k) => `<tr><td><b>${nm}</b></td><td class="mono">${fmt(S.th[k], 6)}</td><td class="mono">${fmt(se[k], 4)}</td><td class="mono">${fmt(S.th[k] / se[k], 4)}</td><td class="mono">[${fmt(S.th[k] - q * se[k], 5)}, ${fmt(S.th[k] + q * se[k], 5)}]</td></tr>`).join("");
+  $("#fitstats").innerHTML = `Residual standard error <b>${fmt(Math.sqrt(s2), 5)}</b> on ${df} df · SSE ${fmt(S.sse, 6)} · R² ${fmt(lastFit.r2, 4)} · AIC ${fmt(aic, 5)}`;
+  $("#fitdl").disabled = false;
+  drawFit();
+}
+function drawFit() {
+  const cv = $("#fitcv"), { ctx, w, h } = fitCanvas(cv), m = { l: 56, r: 14, t: 12, b: 36 };
+  ctx.clearRect(0, 0, w, h);
+  const { x, y } = lastFit || parseData($("#fitdata").value);
+  if (!x.length) { ctx.fillStyle = css("--muted"); ctx.font = "14px Inter"; ctx.textAlign = "center"; ctx.fillText("Paste data and press Fit", w / 2, h / 2); return; }
+  const xmin = Math.min(...x), xmax = Math.max(...x), pad = (xmax - xmin) * 0.04 || 1;
+  const xr = [xmin - pad, xmax + pad]; let ylo = Math.min(...y), yhi = Math.max(...y); const yp = (yhi - ylo) * 0.12 || 1; const yr = [ylo - yp, yhi + yp];
+  const { X, Y } = axes(ctx, w, h, m, xr, yr, "x", "y");
+  ctx.save(); ctx.beginPath(); ctx.rect(m.l, m.t, w - m.l - m.r, h - m.t - m.b); ctx.clip();
+  if (lastFit) {
+    const F = lastFit, N = 200, grid = [], up = [], lo = [], mid = [];
+    for (let i = 0; i <= N; i++) {
+      const xv = xr[0] + (xr[1] - xr[0]) * i / N, yv = F.model.f(xv, F.th);
+      if (!isFinite(yv)) continue;
+      let half = NaN;
+      if (F.inv) { const g = jacobian(F.model, [xv], F.th)[0]; let v = 0; for (let a = 0; a < g.length; a++) for (let b = 0; b < g.length; b++) v += g[a] * F.inv[a][b] * g[b]; half = F.q * Math.sqrt(Math.max(v * F.s2, 0)); }
+      grid.push(xv); mid.push(yv); up.push(yv + half); lo.push(yv - half);
+    }
+    if (up.every(isFinite)) { ctx.beginPath(); grid.forEach((g, i) => (i ? ctx.lineTo(X(g), Y(up[i])) : ctx.moveTo(X(g), Y(up[i])))); for (let i = grid.length - 1; i >= 0; i--) ctx.lineTo(X(grid[i]), Y(lo[i])); ctx.closePath();
+      ctx.fillStyle = css("--accent"); ctx.globalAlpha = 0.18; ctx.fill(); ctx.globalAlpha = 1; }
+    ctx.strokeStyle = css("--accent"); ctx.lineWidth = 2.4; ctx.beginPath(); grid.forEach((g, i) => (i ? ctx.lineTo(X(g), Y(mid[i])) : ctx.moveTo(X(g), Y(mid[i])))); ctx.stroke();
+  }
+  for (let i = 0; i < x.length; i++) { ctx.beginPath(); ctx.arc(X(x[i]), Y(y[i]), 4.2, 0, 7); ctx.fillStyle = css("--text"); ctx.fill(); ctx.strokeStyle = css("--surface"); ctx.lineWidth = 1.4; ctx.stroke(); }
+  ctx.restore();
+  if (lastFit) { ctx.fillStyle = css("--muted"); ctx.font = "11px Inter"; ctx.fillText("shaded: 95% confidence band (delta method)", m.l + 8, m.t + 14); }
+}
+for (const [k, mdl] of Object.entries(MODELS)) $("#fitmodel").add(new Option(mdl.label, k));
+const fitExamples = {
+  "Puromycin": ["michaelis_menten", DATA.puromycin],
+  "Drug elimination": ["exponential_decay", DATA.drug_elimination],
+  "Crop yield vs N": ["asymptotic_regression", { x: [0, 0, 0, 40, 40, 40, 80, 80, 80, 120, 120, 120, 160, 160, 160, 200, 200, 200, 240, 240, 240], y: [3.512, 3.976, 3.929, 5.609, 5.683, 5.603, 7.402, 7.183, 7.464, 7.432, 8.627, 8.045, 8.858, 8.573, 8.488, 9.118, 9.244, 8.885, 9.11, 9.403, 8.859] }],
+  "Rat42 growth (NIST)": ["logistic", { x: [9, 14, 21, 28, 42, 57, 63, 70, 79], y: [8.93, 10.8, 18.59, 22.33, 39.35, 56.11, 61.73, 64.62, 67.08] }],
+  "DanWood (NIST)": ["power_law", DATA.danwood],
+};
+for (const [name, [mk, ds]] of Object.entries(fitExamples)) {
+  const b = document.createElement("button"); b.textContent = name;
+  b.addEventListener("click", () => { $("#fitdata").value = "x,y\n" + ds.x.map((v, i) => `${v},${ds.y[i]}`).join("\n"); $("#fitmodel").value = mk; runFit(); });
+  $("#fitex").appendChild(b);
+}
+$("#fitbtn").addEventListener("click", runFit);
+$("#fitdl").addEventListener("click", () => {
+  if (!lastFit) return; const F = lastFit;
+  let csv = "parameter,estimate,std_error,t_value,ci95_lower,ci95_upper\n" + F.model.names.map((n, k) => [n, F.th[k], F.se[k], F.th[k] / F.se[k], F.th[k] - F.q * F.se[k], F.th[k] + F.q * F.se[k]].join(",")).join("\n");
+  csv += `\n\nstatistic,value\nmodel,"${F.model.label}"\nn,${F.n}\ndf,${F.df}\nresidual_se,${Math.sqrt(F.s2)}\nsse,${F.sse}\nr_squared,${F.r2}\naic,${F.aic}\nconverged,${F.S.status === "converged"}\n`;
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "nonlinear_fit_results.csv"; a.click(); URL.revokeObjectURL(a.href);
+});
+
+/* ---------------- datasets table ---------------- */
+const DS_ROWS = [
+  ["misra1a", "NIST", 14, "a·(1 − exp(−k·x))", "Dental adsorption; lower difficulty"],
+  ["boxbod", "NIST", 6, "a·(1 − exp(−k·x))", "Oxygen demand; higher difficulty, traps Gauss–Newton"],
+  ["danwood", "NIST", 6, "a·x^b", "Radiated energy; lower difficulty"],
+  ["rat42", "NIST", 9, "b1/(1 + exp(b2 − b3·x))", "Pasture growth; logistic"],
+  ["rat43", "NIST", 15, "b1/(1 + exp(b2 − b3·x))^(1/b4)", "Onion bulb growth; Richards curve"],
+  ["mgh09", "NIST", 11, "b1(x² + b2x)/(x² + b3x + b4)", "Kowalik–Osborne; very hard, has local minima"],
+  ["puromycin", "real", 12, "Vmax·x/(Km + x)", "Enzyme kinetics (Treloar 1974)"],
+  ["crop_yield_nitrogen", "simulated", 21, "a − b·exp(−c·x)", "Wheat yield vs nitrogen, 3 replicates"],
+  ["plant_growth", "simulated", 15, "Asym·exp(−b2·b3^x)", "Maize biomass; compare growth curves"],
+  ["dose_response", "simulated", 18, "4-parameter logistic", "Cell viability vs drug concentration"],
+  ["drug_elimination", "simulated", 10, "a·exp(−k·x)", "Plasma concentration; weighted fitting"],
+];
+$("#dstab tbody").innerHTML = DS_ROWS.map((r) => `<tr><td><a href="https://github.com/lunganlungpg/nonlinear-estimation/blob/main/data/${r[0]}.csv"><code>${r[0]}</code></a></td><td>${r[1]}</td><td>${r[2]}</td><td><code>${r[3]}</code></td><td>${r[4]}</td></tr>`).join("");
+
+/* ---------------- KaTeX ---------------- */
+function renderMath() {
+  if (!window.katex) return false;
+  document.querySelectorAll(".tex").forEach((el) => katex.render(el.textContent, el, { throwOnError: false }));
+  document.querySelectorAll(".tex-block").forEach((el) => katex.render(el.textContent, el, { throwOnError: false, displayMode: true }));
+  return true;
+}
+window.addEventListener("load", () => { if (!renderMath()) document.querySelectorAll(".tex,.tex-block").forEach((el) => (el.style.fontFamily = "JetBrains Mono, monospace")); });
+
+/* ---------------- boot ---------------- */
+buildPresets();
+$("#fitdata").value = "x,y\n" + DATA.puromycin.x.map((v, i) => `${v},${DATA.puromycin.y[i]}`).join("\n");
+resetLab();
+runFit();
+let rt = 0; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { landCache = null; drawAll(); drawFit(); }, 150); });
+})();
+</script>
+</body>
+</html>
