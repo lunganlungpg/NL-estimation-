@@ -1,0 +1,10 @@
+name: Request or idea
+description: A model, dataset, feature or clearer explanation
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would make this more useful?
+    validations:
+      required: true

@@ -1,0 +1,20 @@
+name: Bug report
+description: A fit, example or the website behaves incorrectly
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal code and data to reproduce
+      render: python
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "OS, Python, numpy/scipy versions, or browser"
